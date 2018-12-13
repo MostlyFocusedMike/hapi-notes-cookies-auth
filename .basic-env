@@ -1,0 +1,6 @@
+# rename this file to .env in the root of your project
+# our .env files are in our .gitignore, but since this
+# is a tutorial, we have to commit this so you can see it
+
+# the password has to be at least 32 characters long
+PASSWORD=thisistheultrasecurepasswordyoudontevenknow
