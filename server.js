@@ -89,7 +89,7 @@ const start = async () => {
                 // compare passwords
                 if (await Bcrypt.compare(password, user.password)) {
                     request.cookieAuth.set(user);
-                    return { msg: 'Wohoo, great to see you' };
+                    return h.redirect(`/users/${user.username}`);
                     // return h.redirect('/private-route');
                 }
                 return { msg: 'incorrect password or username' };
@@ -143,7 +143,10 @@ const start = async () => {
             },
             handler: (request, h) => {
                 console.log('auth: ', request.auth.credentials);
-                return `Hello ${request.params.username}, you are ${request.auth.credentials.username}`;
+                if (request.auth.isAuthenticated && request.auth.credentials.username === request.params.username) {
+                    return `Hello ${request.params.username}, this is your profile`;
+                }
+                return `This is ${request.params.username}'s profile`;
             },
         },
     });
