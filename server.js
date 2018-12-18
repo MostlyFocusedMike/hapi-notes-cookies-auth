@@ -1,20 +1,8 @@
-require('dotenv').config();
-const Bcrypt = require('bcrypt');
-const hapi = require('hapi');
-const hapiAuthCookie = require('hapi-auth-cookie');
-const vision = require('vision');
-const handlebars = require('handlebars');
-const Path = require('path');
+/* eslint-disable global-require */
 
-const users = {
-    john: {
-        /* password is 'secret' */
-        password: '$2a$10$iqJSHD.BGr0E2IxQwYgJmeP3NvhPrXAeLSaGCj6IR/XU5QtjVu5Tm',
-        username: 'john',
-        name: 'John Doe',
-        // id: '2133d32a',
-    },
-};
+require('dotenv').config();
+const hapi = require('hapi');
+const Path = require('path');
 
 const server = new hapi.Server({
     host: 'localhost',
@@ -23,13 +11,13 @@ const server = new hapi.Server({
 
 const start = async () => {
     await server.register([
-        hapiAuthCookie,
-        vision,
+        require('hapi-auth-cookie'),
+        require('vision'),
     ]);
 
     server.views({
         engines: {
-            html: handlebars,
+            html: require('handlebars'),
         },
         relativeTo: Path.join(__dirname, 'lib/templates'),
         path: '.',
@@ -54,77 +42,15 @@ const start = async () => {
 
 
     // routes
-    server.route({
-        method: 'GET',
-        path: '/',
-        options: {
-            handler: (request, h) => {
-                return h.view('index');
-            },
-        },
-    });
+    server.route([
+        require('./lib/routes/home'),
+        require('./lib/routes/login-get'),
+        require('./lib/routes/login-post'),
+    ]);
 
     server.route({
         method: 'GET',
-        path: '/login',
-        options: {
-            handler: async (request, h) => {
-                return h.view('login');
-            },
-        },
-    });
-
-    server.route({
-        method: 'POST',
-        path: '/login',
-        options: {
-            handler: async (request, h) => {
-                const { username, password } = request.payload;
-
-                const user = users[username];
-                if (!user) {
-                    return { msg: 'You are not in the db' };
-                }
-                // check if user exists in DB
-                // compare passwords
-                if (await Bcrypt.compare(password, user.password)) {
-                    request.cookieAuth.set(user);
-                    return h.redirect(`/users/${user.username}`);
-                    // return h.redirect('/private-route');
-                }
-                return { msg: 'incorrect password or username' };
-            },
-        },
-    });
-
-    server.route({
-        method: 'GET',
-        path: '/logout',
-        options: {
-            auth: 'session',
-            handler: (request, h) => {
-                /* logout by clearing the cookie */
-                return h.view('logout');
-            },
-        },
-    });
-
-    server.route({
-        method: 'POST',
-        path: '/logout',
-        options: {
-            auth: 'session',
-            handler: (request, h) => {
-                /* logout by clearing the cookie */
-                request.cookieAuth.clear();
-                return h.redirect('/');
-            },
-        },
-    });
-
-    server.route({
-        method: 'GET',
-        path: '/private-route',
+        path: '/private-test',
         options: {
             auth: 'session',
             handler: (request, h) => {
@@ -143,17 +69,27 @@ const start = async () => {
             },
             handler: (request, h) => {
                 console.log('auth: ', request.auth.credentials);
-                if (request.auth.isAuthenticated && request.auth.credentials.username === request.params.username) {
-                    return `Hello ${request.params.username}, this is your profile`;
+                const user = users[request.params.username];
+                if (!user) {
+                    return h.redirect('/');
                 }
-                return `This is ${request.params.username}'s profile`;
+                const context = {
+                    name: user.name,
+                    username: user.username,
+                    isUser: false,
+                };
+                if (request.auth.isAuthenticated && request.auth.credentials.username === request.params.username) {
+                    context.isUser = true;
+                }
+
+                return h.view('user-profile', context);
             },
         },
     });
 
     server.route({
         method: 'GET',
-        path: '/some-route',
+        path: '/show-auth',
         options: {
             auth: {
                 mode: 'try',
@@ -161,12 +97,9 @@ const start = async () => {
             },
             handler: (request, h) => {
                 if (request.auth.isAuthenticated) {
-                    // session data available
-                    const session = request.auth.credentials;
                     return {
                         msg: 'you ARE auth',
                         authData: request.auth,
-                        session,
                     };
                 }
                 return { msg: 'you are NOT auth', authData: request.auth };

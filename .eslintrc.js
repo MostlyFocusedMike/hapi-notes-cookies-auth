@@ -14,6 +14,6 @@ module.exports = {
         "max-len": ["warn", 180],
         "one-var": 0,
         "no-console": "off",
-        "arrow-body-style": "off"
+        "arrow-body-style": "off",
     },
 };
